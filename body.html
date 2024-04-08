@@ -1,0 +1,192 @@
+HTTP/1.1 200 OK
+Content-type: text/html
+Content-length: 4788
+
+<html>
+<head>
+<meta charset="windows-1251">
+<style>
+body {
+	margin: 0;
+	background-color: #ffb073;
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+
+#modes {
+	display: flex;
+}
+
+.mode {
+	width: 100%;
+	font-size: 1.2rem;
+}
+
+.button,
+.button-first {
+	text-align: center;
+	background-color: #eee;
+	padding: 1rem 0;
+	border-left: 0.15rem solid #aaa;
+	border-right: 0.15rem solid #aaa;
+	border-bottom: 0.15rem solid #aaa;
+}
+
+.button-first {
+	border-top: 0.15rem solid #aaa;
+	margin-top: 1rem;
+}
+
+.bold {
+	font-weight: bold;
+}
+
+#color {
+	margin: 1rem auto;
+	width: calc(100vmin - 2.5rem);
+	height: calc(100vmin - 2.5rem);
+	border: solid 0.25rem #aaa;
+	border-radius: 50%;
+	background: radial-gradient(white 0%, #fff0 70.71%), conic-gradient(red, yellow, green, cyan, blue, magenta, red);
+	display: none;
+}
+
+#color-dot {
+	width: 0.8rem;
+	height: 0.8rem;
+	border-radius: 50%;
+	background: black;
+	transform: translate(calc(50vmin - 1.25rem), calc(50vmin - 1.25rem));
+}
+
+#effects {
+	display: none;
+}
+</style>
+<script>
+var rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+
+function load() {
+	const userDeviceArray = [
+		/Android/,
+		/iPhone/,
+		/iPad/,
+		/Symbian/,
+		/Windows Phone/,
+		/Tablet OS/
+	];
+	var platform = navigator.userAgent;
+	for (var i in userDeviceArray)
+		if (userDeviceArray[i].test(platform)) {
+			document.getElementsByTagName("html")[0].style.fontSize = '300%';
+			return;
+		}
+}
+
+var mode = 0;
+function swapMode(id) {
+	document.getElementsByClassName('bold mode')[0].classList.remove('bold');
+	document.getElementsByClassName('mode')[id].classList.add('bold');
+
+	const disp = [[0, 0], [1, 0], [0, 1]];
+	document.getElementById('color').style.display = (disp[id][0] == 1 ? 'block' : 'none');
+	document.getElementById('effects').style.display = (disp[id][1] == 1 ? 'block' : 'none');
+
+	mode = id;
+	send();
+}
+
+var effect = 0;
+function swapEffect(id) {
+	document.getElementsByClassName('bold effect')[0].classList.remove('bold');
+	document.getElementsByClassName('effect')[id].classList.add('bold');
+
+	effect = id;
+	send();
+}
+
+var colorPress = false;
+function mousemove(event) {
+	if (!colorPress) return;
+	if (event.which != 1) { colorPress = false; return; }
+	move(event.clientX, event.clientY);
+	send();
+}
+function fingermove(event) {
+	if (colorPress)
+		move(event.touches[0].clientX, event.touches[0].clientY);
+	send();
+}
+var h = 0, s = 0;
+function move(x, y) {
+	var rect = document.getElementById('color').getBoundingClientRect();
+	var r = rect.width * 0.5;
+	x = Math.max(Math.min((x - rect.x), rect.width), 0) - r;
+	y = Math.max(Math.min((y - rect.y), rect.height), 0) - r;
+	var xn = x / r;
+	var yn = y / r;
+	var len = Math.sqrt(xn * xn + yn * yn);
+	if (len > 1) {
+		x /= len;
+		y /= len;
+		len = 1;
+	}
+	document.getElementById('color-dot').style.transform =
+		'translate(' + (x + r - 0.4 * rem) + 'px,' + (y + r - 0.4 * rem) + 'px)';
+	if (x > 0) h = 0.25 + 0.5 * Math.atan(y / x) / Math.PI;
+	else if (x < 0) h = 0.75 + 0.5 * Math.atan(y / x) / Math.PI;
+	else if (y > 0) h = 0;
+	else h = 0.5;
+	s = len;
+}
+
+var wait = 0;
+function send() {
+	if (wait == 0) {
+		var message = mode.toString();
+		switch (mode) {
+			case 1:
+				message += '_' + Math.floor(h * (256 * 6 - 1)) + '_' + Math.floor(s * 255);
+				break;
+			case 2:
+				message += '_' + effect;
+		}
+		console.log(message);
+
+		wait = 1;
+		var xhr = new XMLHttpRequest();
+		xhr.open('POST', message, true);
+		xhr.onreadystatechange = function () {
+			if (xhr.readyState === XMLHttpRequest.DONE) {
+				var sendNew = (wait == 2);
+				wait = 0;
+				if (sendNew) send();
+			}
+		}
+		xhr.send();
+	}
+	else if (wait == 1) wait = 2;
+}
+</script>
+</head>
+<body onload="load()" onmousemove="mousemove(event)" ontouchmove="fingermove(event)" ontouchend="colorPress=false;" ontouchecancel="colorPress=false;">
+	<div id="modes">
+		<div class="mode button-first bold" onclick="swapMode(0)">Выключить</div>
+		<div class="mode button-first" onclick="swapMode(1)">Цвет</div>
+		<div class="mode button-first" onclick="swapMode(2)">Анимация</div>
+	</div>
+
+	<div id="color" onmousedown="colorPress=true;" ontouchstart="colorPress=true;">
+		<div id="color-dot"></div></div>
+	<div id="effects">
+		<div class="effect button-first bold" id="E0" onclick="swapEffect(0)">Эффект 1</div>
+		<div class="effect button" id="E1" onclick="swapEffect(1)">Эффект 2</div>
+		<div class="effect button" id="E2" onclick="swapEffect(2)">Эффект 3</div>
+		<div class="effect button" id="E3" onclick="swapEffect(3)">Эффект 4</div>
+	</div>
+</body
+</html>
